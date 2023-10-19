@@ -34,7 +34,8 @@ async function run() {
     await client.connect();
 
 
-    const productCollection = client.db('productDB').collection('product');
+    const productCollection =  client.db('productDB').collection('product');
+ 
 
     app.get('/product', async(req, res) => {
       const cursor = productCollection.find();
@@ -48,11 +49,22 @@ async function run() {
       const result = await productCollection.findOne(query);
       res.send(result);
     })
+    // ======
+    app.get('/allProduct/:brand_name', async(req, res) => {
+      const carName = req.params.brand_name;
+      const cursor = productCollection.find();
+      const result = await cursor.toArray();
+      const allCars = result.filter(car => car.brand).filter(car => car.brand.toLowerCase().trim() === carName.toLowerCase().trim())
+      console.log(allCars)
+      res.json(allCars)
+    })
 
-    app.post('/product', async(req, res) => {
+    //==========
+
+    app.post('/product', async (req, res) => {
       const newProduct = req.body;
-      console.log(newProduct);
       const result = await productCollection.insertOne(newProduct)
+      console.log(result);
       res.send(result)
     })
 
