@@ -10,12 +10,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// automotiveHub
-// SbpUTODxeDq6WdUD
 
-
-
-// mongodb
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.v6vphhi.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -35,7 +30,78 @@ async function run() {
 
 
     const productCollection =  client.db('productDB').collection('product');
- 
+    
+    const users = client.db("productDB").collection("users");
+
+    app.post("/create-user", async (req, res) => {
+      const { email } = req.body;
+      const cursor = users.find();
+      const result = await cursor.toArray();
+      const foundUser = result.filter((user) => user.email === email);
+      if (foundUser.length) {
+        console.log("already added");
+        return res.send("already added");
+      }
+      const user = await users.insertOne({ email, cart: [] });
+      res.end();
+    });
+
+    app.post("/request-cart", async (req, res) => {
+      const { email } = req.body;
+      const cursor = users.find();
+      const result = await cursor.toArray();
+      const foundUser = result.filter((user) => user.email === email);
+      res.json(foundUser[0].cart);
+
+      res.end();
+    });
+
+    app.delete("/delete-cart-item", async (req, res) => {
+      const id = req.body.id;
+      const email = req.body.email;
+
+      const cursor = users.find();
+      const result = await cursor.toArray();
+      const foundUser = result.filter((user) => user.email === email);
+
+      const allCart = [...foundUser[0].cart];
+
+      const updatedCart = allCart.filter((item) => item.id !== id);
+
+      await users.updateOne(
+        { email: email },
+        { $set: { cart: updatedCart } },
+        { upsert: true }
+      );
+      console.log(updatedCart);
+
+      res.end();
+    });
+
+    app.put("/add-to-cart", async (req, res) => {
+      const data = req.body;
+      const cursor = users.find();
+      const result = await cursor.toArray();
+      const foundUser = result.filter((user) => user.email === data.email);
+      const newProduct = {
+        id: data.id,
+        photo: data.photo,
+        brand: data.brand,
+        name: data.name,
+        price: data.price
+      };
+
+      const allCart = [...foundUser[0].cart, newProduct];
+
+      await users.updateOne(
+        { email: data.email },
+        { $set: { cart: allCart } },
+        { upsert: true }
+      );
+
+      res.end();
+    });
+
 
     app.get('/product', async(req, res) => {
       const cursor = productCollection.find();
